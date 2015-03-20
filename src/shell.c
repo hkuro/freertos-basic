@@ -160,7 +160,48 @@ void help_command(int n,char *argv[]){
 	}
 }
 
+//轉換數字的函式
+int stoi(char *str)
+{
+        int i;
+        int result = 0;
+        int count = strlen(str);//計算有幾個位數
+        for (i = 0; i < count; ++i)
+        {
+                result = result*10+(str[i]-'0'); //將每一位數轉換
+        }
+        return result;
+}
+
 void test_command(int n, char *argv[]) {
+    //Test print hello
+    //fio_printf(1,"\r\n Hello world!");
+    
+    //Compute Fibonacci
+    if(n ==3 )	//e.g. input is "test fib 10"
+	{
+		if(strcmp(argv[1],"fib")==0)
+		{
+			if(argv[2]!=0)
+			{
+			    int i;   
+                            int count = stoi(argv[2]); 
+                            int result = 1;
+                            int prev = 0;
+                            int temp;
+                            
+                            for (i = 1; i < count; ++i)
+                            {
+                                    temp = result;
+                                    result = result + prev; //f(n+1)=f(n)+f(n-1)
+                                    prev = temp ;
+                            }
+                            //print the result to the screen.
+                            fio_printf(1,"\r\nFibonacci number at %d is %d",count,result) ;
+			}
+		}
+	} 
+ 
     int handle;
     int error;
 

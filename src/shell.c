@@ -25,6 +25,10 @@ void host_command(int, char **);
 void mmtest_command(int, char **);
 void test_command(int, char **);
 void _command(int, char **);
+void new_command(int, char**);
+void new_task();
+void sysinfo_command(int, char**);
+void sysinfo_task();
 
 #define MKCL(n, d) {.name=#n, .fptr=n ## _command, .desc=d}
 
@@ -38,6 +42,8 @@ cmdlist cl[]={
 	MKCL(help, "help"),
 	MKCL(test, "test new function"),
 	MKCL(, ""),
+	MKCL(new, "new a task"),
+	MKCL(sysinfo, "sysinfo saved"),
 };
 
 int parse_command(char *str, char *argv[]){
@@ -160,15 +166,15 @@ void help_command(int n,char *argv[]){
 	}
 }
 
-//轉換數字的函式
+//Transform argv[2] string to integer
 int stoi(char *str)
 {
         int i;
         int result = 0;
-        int count = strlen(str);//計算有幾個位數
+        int count = strlen(str);//How many bits in "str"? string length
         for (i = 0; i < count; ++i)
         {
-                result = result*10+(str[i]-'0'); //將每一位數轉換
+                result = result*10+(str[i]-'0'); //transform every bit
         }
         return result;
 }
@@ -202,10 +208,13 @@ void test_command(int n, char *argv[]) {
 		}
 	} 
  
+
+ 	fio_printf(1, "\r\n");
+ /*
     int handle;
     int error;
 
-    fio_printf(1, "\r\n");
+    
     
     handle = host_action(SYS_SYSTEM, "mkdir -p output");
     handle = host_action(SYS_SYSTEM, "touch output/syslog");
@@ -225,6 +234,7 @@ void test_command(int n, char *argv[]) {
     }
 
     host_action(SYS_CLOSE, handle);
+    */
 }
 
 void _command(int n, char *argv[]){
@@ -242,3 +252,89 @@ cmdfunc *do_command(const char *cmd){
 	}
 	return NULL;	
 }
+
+// Create a new FreeRTOS task using "new" command
+xTaskHandle newHandle = NULL; 
+void new_command(int n,char *argv[]){
+
+	if(n!=2){
+		fio_printf(1,"\r\n argument error! \r\n");
+		return;
+	}
+
+	//Creat a task
+	xTaskCreate(new_task,(signed portCHAR *)"task",128,NULL,tskIDLE_PRIORITY, &newHandle);
+    
+
+    fio_printf(1, "\r\n new task created \r\n");
+
+}
+
+void new_task(void *pvParameters){
+	vTaskSuspend(newHandle);
+} 		
+
+// Create a new FreeRTOS task using "new" command
+xTaskHandle sysinfoHandle = NULL; 
+void sysinfo_command(int n,char *argv[]){
+
+	if(n!=2){
+		fio_printf(1,"\r\n argument error! \r\n");
+		return;
+	}
+
+	//Creat a task
+	xTaskCreate(sysinfo_task,(signed portCHAR *)"info",1024,NULL,tskIDLE_PRIORITY, &sysinfoHandle);
+    
+
+    fio_printf(1, "\r\n sysinfo saved! \r\n");
+
+}
+
+void sysinfo_task(void *pvParameters){
+	signed char buf[128];
+    char output[512] = {0};
+    char *tag = "\nName          State   Priority  Stack  Num\n*******************************************\n";
+    int handle, error;
+    const portTickType xDelay = 100000 / 5000;
+
+    handle = host_action(SYS_OPEN, "output/sysinfo", 4);
+    if(handle == -1) {
+        fio_printf(1, "Open file error!\n");
+        return;
+    }
+
+    while(1) {
+        memcpy(output, tag, strlen(tag));
+        error = host_action(SYS_WRITE, handle, (void *)output, strlen(output));
+        if(error != 0) {
+            fio_printf(1, "Write file error! Remain %d bytes didn't write in the file.\n\r", error);
+            host_action(SYS_CLOSE, handle);
+            return;
+        }
+        vTaskList(buf);
+
+        memcpy(output, (char *)(buf + 2), strlen((char *)buf) - 2);
+
+        error = host_action(SYS_WRITE, handle, (void *)buf, strlen((char *)buf));
+        if(error != 0) {
+            fio_printf(1, "Write file error! Remain %d bytes didn't write in the file.\n\r", error);
+            host_action(SYS_CLOSE, handle);
+            return;
+        }
+
+        vTaskDelay(xDelay);
+    }
+    
+    host_action(SYS_CLOSE, handle);
+} 	
+
+
+
+
+
+
+
+
+
+
